@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOTA</title>
+<style>
+  @font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 300; src: url('fonts/DMMono-300-latin.woff2') format('woff2'); }
+  @font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 400; src: url('fonts/DMMono-400-latin.woff2') format('woff2'); }
+  @font-face { font-family: 'DM Mono'; font-style: italic; font-weight: 300; src: url('fonts/DMMono-300italic-latin.woff2') format('woff2'); }
+  @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 300 500; src: url('fonts/DMSans-latin.woff2') format('woff2'); }
+  @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 700; src: url('fonts/PlayfairDisplay-700-latin.woff2') format('woff2'); }
+</style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Server config modal -->
+<div id="server-modal" class="modal-backdrop" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-title">Server settings</div>
+    <div class="batch-field-row">
+      <label for="provider-select">Provider</label>
+      <select id="provider-select">
+        <option value="lmstudio">LM Studio</option>
+        <option value="ollama">Ollama</option>
+        <option value="generic">Generic (OpenAI-compatible)</option>
+      </select>
+    </div>
+    <div class="batch-field-row" style="margin-top:10px;">
+      <label for="server-input">API base URL</label>
+      <input type="text" id="server-input" spellcheck="false" placeholder="http://127.0.0.1:1234">
+    </div>
+    <div class="batch-field-row" style="margin-top:10px;">
+      <label for="concurrency-input">Concurrency (parallel requests)</label>
+      <input type="number" id="concurrency-input" min="1" max="16" step="1" value="1">
+    </div>
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button id="server-save-btn" class="batch-action-btn" style="flex:1;">Save</button>
+      <button id="server-cancel-btn" class="modal-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <h1 id="title-nota">annotaid</h1>
+  <p id="subtitle">Natural-language Open Text Annotator</p>
+  <p id="description">Annotate and classify texts using a local language model. Test prompts on single inputs, then apply them to an entire CSV column — and export the results.<button id="gs-help-btn" title="Show getting started guide" aria-label="Show getting started guide">?</button></p>
+</header>
+
+<!-- Getting-started banner (dismissed via localStorage) -->
+<div id="gs-banner">
+  <button id="gs-dismiss" title="Dismiss" aria-label="Dismiss">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div id="gs-steps">
+    <div class="gs-step">
+      <span class="gs-num">1</span>
+      <div class="gs-text">
+        <strong>Start your local LLM service</strong> (e.g. LM Studio or Ollama), load the model(s) you want to use, and enable the local server.
+      </div>
+    </div>
+    <div class="gs-step">
+      <span class="gs-num">2</span>
+      <div class="gs-text">
+        <strong>Connect</strong> by clicking the <svg class="gs-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> settings button, selecting your provider, entering the server URL, and saving.
+      </div>
+    </div>
+    <div class="gs-step">
+      <span class="gs-num">3</span>
+      <div class="gs-text">
+        <strong>Select a model</strong> from the dropdown at the top of the page.
+      </div>
+    </div>
+    <div class="gs-step">
+      <span class="gs-num">4</span>
+      <div class="gs-text">
+        <strong>Write a prompt</strong> in the Context field — this is the instruction your model will follow for every item.
+      </div>
+    </div>
+    <div class="gs-step">
+      <span class="gs-num">5</span>
+      <div class="gs-text">
+        <strong>Test</strong> your prompt on a single text in the TEST tab, then switch to BATCH to process a full CSV column.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Model picker -->
+<div id="model-row">
+  <label id="model-label" class="input-label" for="model-select">model</label>
+  <select id="model-select">
+    <option value="">— loading models… —</option>
+  </select>
+  <div id="gs-model-hint" class="gs-inline-hint" style="display:none;">
+    <!-- Lucide: alert-circle -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>Could not reach service. Make sure your local LLM service is running.</span>
+  </div>
+  <button id="refresh-btn" title="Refresh models">
+    <!-- Lucide: refresh-cw -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+      <path d="M21 3v5h-5"/>
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+      <path d="M8 16H3v5"/>
+    </svg>
+  </button>
+  <button id="server-btn" title="Server settings">
+    <!-- Lucide: settings -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+</div>
+
+<!-- Context upload (hidden file input) -->
+<input type="file" id="context-file-input" accept=".md,.txt">
+
+<!-- Input card (context always visible) -->
+<div id="input-area">
+  <div id="input-wrapper">
+    <div class="input-section context-section">
+      <div class="input-label-row">
+        <span class="input-label">context</span>
+        <span id="token-counter">~0 tokens</span>
+      </div>
+      <textarea id="context-input" placeholder="Context / instructions for the AI…" rows="1"></textarea>
+      <!-- Upload button -->
+      <button id="context-upload-btn" title="Upload .md file">
+        <!-- Lucide: upload -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </button>
+      <!-- Download button -->
+      <button id="context-download-btn" title="Download as .md file">
+        <!-- Lucide: download -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab bar attached to bottom of input card -->
+  <div id="tabs-bar">
+    <button class="tab-btn active" data-tab="test">
+      <!-- Lucide: message-square -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      TEST
+    </button>
+    <button class="tab-btn" data-tab="batch">
+      <!-- Lucide: table -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <line x1="3" y1="9" x2="21" y2="9"/>
+        <line x1="3" y1="15" x2="21" y2="15"/>
+        <line x1="9" y1="3" x2="9" y2="21"/>
+      </svg>
+      BATCH
+    </button>
+  </div>
+
+  <!-- TEST panel -->
+  <div id="test-panel" class="tab-panel active">
+    <div class="panel-card" id="text-panel-card">
+      <div class="input-section">
+        <div class="input-label">text</div>
+        <textarea id="text-input" placeholder="Paste text, comment, clipping…" rows="1"></textarea>
+      </div>
+      <button id="send-btn" title="Send">
+        <!-- Lucide: send -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+    <div id="error-msg"></div>
+    <div id="send-hint">Enter to send · Shift+Enter for new line</div>
+    <div id="response-container"></div>
+  </div>
+
+  <!-- BATCH panel -->
+  <div id="batch-panel" class="tab-panel">
+
+    <!-- Drop zone (hidden once file loaded) -->
+    <div id="csv-drop-zone">
+      <div class="drop-icon">
+        <!-- Lucide: upload-cloud -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 16 12 12 8 16"/>
+          <line x1="12" y1="12" x2="12" y2="21"/>
+          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+        </svg>
+      </div>
+      <div class="drop-label">Drop a CSV file here, or click to browse</div>
+      <div class="drop-sub">comma · semicolon · tab separated</div>
+      <div id="gs-batch-hint" class="gs-inline-hint" style="display:none;">
+        <!-- Lucide: lightbulb -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="18" x2="15" y2="18"/><line x1="12" y1="22" x2="12" y2="18"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
+        <span>Don't have a model loaded yet? Go to <strong>Settings</strong> first.</span>
+      </div>
+    </div>
+    <input type="file" id="csv-file-input" accept=".csv,.tsv,.txt">
+    <div id="csv-load-error"></div>
+
+    <!-- Controls shown after file loaded -->
+    <div id="batch-controls">
+      <div id="batch-file-info">
+        <div>
+          <div id="batch-file-name"></div>
+          <div id="batch-file-meta"></div>
+        </div>
+        <button id="batch-clear-btn" title="Clear file">
+          <!-- Lucide: x -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          clear
+        </button>
+      </div>
+      <div id="column-row">
+        <label class="input-label" for="column-select">column to code</label>
+        <!-- Custom column picker -->
+        <div id="col-picker">
+          <button id="col-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span id="col-picker-label">—</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <ul id="col-picker-list" role="listbox" aria-label="Column to code"></ul>
+        </div>
+        <!-- Hidden native select keeps the rest of the JS working unchanged -->
+        <select id="column-select" style="display:none;"></select>
+      </div>
+
+      <!-- PREVIEW area -->
+      <div id="preview-area" class="batch-section">
+        <div class="batch-section-label">Preview</div>
+        <button id="preview-btn" class="batch-action-btn">
+          <!-- Lucide: list-checks -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="10" y1="6" x2="21" y2="6"/>
+            <line x1="10" y1="12" x2="21" y2="12"/>
+            <line x1="10" y1="18" x2="21" y2="18"/>
+            <polyline points="3 6 4 7 6 5"/>
+            <polyline points="3 12 4 13 6 11"/>
+            <polyline points="3 18 4 19 6 17"/>
+          </svg>
+          Preview coding for 5 random items
+        </button>
+        <div id="preview-table-wrap">
+          <table id="preview-table">
+            <thead>
+              <tr>
+                <th id="preview-col-header"></th>
+                <th>coding</th>
+              </tr>
+            </thead>
+            <tbody id="preview-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PROCESS area -->
+      <div id="process-area" class="batch-section">
+        <div class="batch-section-label">Process</div>
+        <div class="batch-field-row">
+          <label for="output-col-input">New output column name</label>
+          <input type="text" id="output-col-input" placeholder="e.g. coding_result" spellcheck="false">
+          <div id="output-col-error"></div>
+        </div>
+        <button id="code-all-btn" class="batch-action-btn" disabled>
+          <!-- Lucide: zap -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          Code all
+        </button>
+        <button id="resume-btn" class="batch-action-btn resume-btn" style="display:none;">
+          <!-- Lucide: play -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Resume from row <span id="resume-from-label"></span>
+        </button>
+
+        <!-- Progress (hidden until coding starts) -->
+        <div id="code-all-progress" style="display:none;">
+          <div id="code-all-progress-bar-wrap">
+            <div id="code-all-progress-bar"></div>
+          </div>
+          <div id="code-all-progress-label"></div>
+          <div id="code-all-last-row" style="display:none;">
+            <table id="code-all-last-table">
+              <thead>
+                <tr>
+                  <th id="code-all-last-col-header"></th>
+                  <th>coding</th>
+                </tr>
+              </thead>
+              <tbody id="code-all-last-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Download button (hidden until done) -->
+        <button id="download-btn" class="batch-action-btn" style="display:none;">
+          <!-- Lucide: download -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download CSV
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <a href="#" class="footer-link" id="impressum-link">Impressum</a>
+  <span class="footer-sep">·</span>
+  <a href="#" class="footer-link" id="privacy-link">Data Privacy Statement</a>
+  <span class="footer-sep">·</span>
+  <a href="#" class="footer-link" id="license-link">MIT License</a>
+  <div id="version">v 1.0</div>
+</footer>
+
+<!-- Impressum modal -->
+<div id="impressum-modal" class="modal-backdrop" style="display:none;">
+  <div class="modal-box modal-legal">
+    <div class="modal-title">Impressum</div>
+    <div class="legal-body">
+      <p><strong>Responsible for content:</strong><br>
+      Philipp Sprengholz<br>
+      University of Bamberf<br>
+      Markusstraße 8a<br>
+      96047 Bamberg<br>
+      Germany</p>
+      <p><strong>Contact:</strong><br>
+      philipp.sprengholz[at]@uni-bamberg.de<br>
+      <p><strong>Disclaimer:</strong><br>
+      Despite careful content control, we assume no liability for the content of external links. The operators of linked pages are solely responsible for their content.</p>
+    </div>
+    <button class="modal-close-btn" data-modal="impressum-modal">Close</button>
+  </div>
+</div>
+
+<!-- Privacy modal -->
+<div id="privacy-modal" class="modal-backdrop" style="display:none;">
+  <div class="modal-box modal-legal">
+    <div class="modal-title">Data Privacy Statement</div>
+    <div class="legal-body">
+      <p><strong>1. Data controller</strong><br>
+      Philipp Sprengholz, University of Bamberg, Markusstraße 8a, 96047 Bamberg, Germany.</p>
+      <p><strong>2. Data processed</strong><br>
+      This application runs entirely in your browser. Text entered in the input fields is sent to the configured local LLM service (default: localhost) for processing. No data is transmitted to any third-party server by this application.</p>
+      <p><strong>3. Local storage</strong><br>
+      The application stores your context text, input text, and server address in your browser's local storage solely to restore your session. This data never leaves your device. You may clear all locally stored data at any time via your browser settings.</p>
+      <p><strong>4. Your rights</strong><br>
+      You have the right to access, rectify, or erase any personal data uploaded to the application. </p>
+      <p><strong>5. Contact</strong><br>
+      For privacy-related enquiries, contact: philipp.sprengholz[at]@uni-bamberg.de</p>
+    </div>
+    <button class="modal-close-btn" data-modal="privacy-modal">Close</button>
+  </div>
+</div>
+
+<!-- License modal -->
+<div id="license-modal" class="modal-backdrop" style="display:none;">
+  <div class="modal-box modal-legal">
+    <div class="modal-title">MIT License</div>
+    <div class="legal-body">
+      <p>Copyright © 2026 Philipp Sprengholz</p>
+      <p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+      <p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+      <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+    </div>
+    <button class="modal-close-btn" data-modal="license-modal">Close</button>
+  </div>
+</div>
+
+<script>
+  // ── SVG icon snippets (Lucide, MIT) ─────────────────────────
+  const ICON_STOP     = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
+  const ICON_SEND     = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+  const ICON_PREVIEW  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>';
+  const ICON_ZAP      = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+  const ICON_DOWNLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+
+  // ── Constants ────────────────────────────────────────────────
+  const LS_CONTEXT     = 'rate-lm:context';
+  const LS_TEXT        = 'rate-lm:text';
+  const LS_SERVER      = 'rate-lm:server';
+  const LS_PROVIDER    = 'rate-lm:provider';
+  const LS_CONCURRENCY = 'rate-lm:concurrency';
+  const LS_LAST_COL    = 'rate-lm:last_column';
+  const LS_LAST_TAB    = 'rate-lm:last_tab';
+
+  // Provider presets: default base URL, models endpoint, and response parser
+  const PROVIDERS = {
+    lmstudio: {
+      defaultBase:  'http://127.0.0.1:1234',
+      modelsPath:   '/api/v0/models',
+      parseModels:  data => (data.data || []).filter(m => m.state === 'loaded').map(m => m.id).sort()
+    },
+    ollama: {
+      defaultBase:  'http://127.0.0.1:11434',
+      modelsPath:   '/api/tags',
+      parseModels:  data => (data.models || []).map(m => m.name).sort()
+    },
+    generic: {
+      defaultBase:  'http://127.0.0.1:1234',
+      modelsPath:   '/v1/models',
+      parseModels:  data => (data.data || []).map(m => m.id).sort()
+    }
+  };
+
+  let currentProvider = localStorage.getItem(LS_PROVIDER) || 'lmstudio';
+  let apiBase  = localStorage.getItem(LS_SERVER) || PROVIDERS[currentProvider].defaultBase;
+  let CHAT_URL   = `${apiBase}/v1/chat/completions`;
+  let MODELS_URL = `${apiBase}${PROVIDERS[currentProvider].modelsPath}`;
+
+  let cfgConcurrency  = parseInt(localStorage.getItem(LS_CONCURRENCY) ?? '1');
+
+  // ── Element refs ─────────────────────────────────────────────
+  const modelSelect        = document.getElementById('model-select');
+  const refreshBtn         = document.getElementById('refresh-btn');
+  const serverBtn          = document.getElementById('server-btn');
+  const serverModal        = document.getElementById('server-modal');
+  const providerSelect     = document.getElementById('provider-select');
+  const serverInput        = document.getElementById('server-input');
+  const concurrencyInput   = document.getElementById('concurrency-input');
+  const serverSaveBtn      = document.getElementById('server-save-btn');
+  const serverCancelBtn    = document.getElementById('server-cancel-btn');
+  const responseContainer  = document.getElementById('response-container');
+  const textInput          = document.getElementById('text-input');
+  const contextInput       = document.getElementById('context-input');
+  const tokenCounter       = document.getElementById('token-counter');
+  const sendBtn            = document.getElementById('send-btn');
+  const errorMsg           = document.getElementById('error-msg');
+
+  // ── Global busy flag ─────────────────────────────────────────
+  let busyAbort = null;
+
+  function setBusy(controller) {
+    busyAbort = controller;
+    sendBtn.disabled    = true;
+    previewBtn.disabled = true;
+    codeAllBtn.disabled = true;
+    resumeBtn.disabled  = true;
+    refreshBtn.disabled = true;
+    serverBtn.disabled  = true;
+  }
+
+  function clearBusy() {
+    busyAbort = null;
+    sendBtn.disabled    = false;
+    previewBtn.disabled = false;
+    refreshBtn.disabled = false;
+    serverBtn.disabled  = false;
+    validateOutputCol();
+  }
+
+  // ── Token counter (rough: ~4 chars/token) ────────────────────
+  function updateTokenCounter() {
+    const chars  = contextInput.value.length;
+    const approx = Math.round(chars / 4);
+    tokenCounter.textContent = `~${approx.toLocaleString()} tokens`;
+    tokenCounter.classList.toggle('token-warning', approx > 2000);
+  }
+  updateTokenCounter();
+
+  // ── localStorage persistence ─────────────────────────────────
+  contextInput.value = localStorage.getItem(LS_CONTEXT) || '';
+  textInput.value    = localStorage.getItem(LS_TEXT)    || '';
+
+  contextInput.addEventListener('input', () => {
+    localStorage.setItem(LS_CONTEXT, contextInput.value);
+    autoResize(contextInput, 480);
+    updateTokenCounter();
+  });
+  textInput.addEventListener('input', () => {
+    localStorage.setItem(LS_TEXT, textInput.value);
+    autoResize(textInput, 480);
+  });
+
+  // ── Context upload / download ─────────────────────────────────
+  const contextFileInput      = document.getElementById('context-file-input');
+  const contextUploadBtn      = document.getElementById('context-upload-btn');
+  const contextDownloadBtn    = document.getElementById('context-download-btn');
+
+  contextUploadBtn.addEventListener('click', () => contextFileInput.click());
+  contextFileInput.addEventListener('change', () => {
+    const file = contextFileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      contextInput.value = e.target.result;
+      localStorage.setItem(LS_CONTEXT, contextInput.value);
+      autoResize(contextInput, 480);
+      updateTokenCounter();
+    };
+    reader.readAsText(file);
+    contextFileInput.value = '';
+  });
+
+  contextDownloadBtn.addEventListener('click', () => {
+    const content = contextInput.value;
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'context.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ── Tab persistence ───────────────────────────────────────────
+  const savedTab = localStorage.getItem(LS_LAST_TAB) || 'test';
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const isActive = btn.dataset.tab === savedTab;
+    btn.classList.toggle('active', isActive);
+    document.getElementById(btn.dataset.tab + '-panel').classList.toggle('active', isActive);
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab + '-panel').classList.add('active');
+      localStorage.setItem(LS_LAST_TAB, btn.dataset.tab);
+    });
+  });
+
+  // ── Server config modal ──────────────────────────────────────
+  serverBtn.addEventListener('click', () => {
+    providerSelect.value   = currentProvider;
+    serverInput.value      = apiBase;
+    concurrencyInput.value = cfgConcurrency;
+    serverModal.style.display = '';
+    serverInput.focus();
+    serverInput.select();
+  });
+
+  // Auto-fill default URL when provider changes (only if URL still matches a known default)
+  providerSelect.addEventListener('change', () => {
+    const knownDefaults = Object.values(PROVIDERS).map(p => p.defaultBase);
+    if (knownDefaults.includes(serverInput.value.trim()) || serverInput.value.trim() === '') {
+      serverInput.value = PROVIDERS[providerSelect.value].defaultBase;
+    }
+  });
+
+  serverCancelBtn.addEventListener('click', () => { serverModal.style.display = 'none'; });
+  serverModal.addEventListener('click', (e) => { if (e.target === serverModal) serverModal.style.display = 'none'; });
+
+  serverSaveBtn.addEventListener('click', () => {
+    const val = serverInput.value.trim().replace(/\/$/, '');
+    if (!val) return;
+    currentProvider = providerSelect.value;
+    apiBase         = val;
+    CHAT_URL        = `${apiBase}/v1/chat/completions`;
+    MODELS_URL      = `${apiBase}${PROVIDERS[currentProvider].modelsPath}`;
+    localStorage.setItem(LS_PROVIDER, currentProvider);
+    localStorage.setItem(LS_SERVER, apiBase);
+
+    cfgConcurrency = Math.max(1, parseInt(concurrencyInput.value) || 1);
+    localStorage.setItem(LS_CONCURRENCY, cfgConcurrency);
+
+    serverModal.style.display = 'none';
+    loadModels();
+  });
+
+  serverInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') serverSaveBtn.click();
+    if (e.key === 'Escape') serverCancelBtn.click();
+  });
+
+  // ── Batch: CSV upload ────────────────────────────────────────
+  const csvDropZone    = document.getElementById('csv-drop-zone');
+  const csvFileInput   = document.getElementById('csv-file-input');
+  const batchControls  = document.getElementById('batch-controls');
+  const batchFileName  = document.getElementById('batch-file-name');
+  const batchFileMeta  = document.getElementById('batch-file-meta');
+  const batchClearBtn  = document.getElementById('batch-clear-btn');
+  const columnSelect   = document.getElementById('column-select');
+  const previewArea    = document.getElementById('preview-area');
+  const previewBtn     = document.getElementById('preview-btn');
+  const outputColInput = document.getElementById('output-col-input');
+  const outputColError = document.getElementById('output-col-error');
+  const codeAllBtn     = document.getElementById('code-all-btn');
+  const resumeBtn      = document.getElementById('resume-btn');
+  const resumeFromLabel= document.getElementById('resume-from-label');
+
+  let csvData     = null;
+  let resumeFrom  = 0;   // index into csvData.rows to start/continue from
+
+  csvDropZone.addEventListener('click', () => csvFileInput.click());
+  csvDropZone.addEventListener('dragover', (e) => { e.preventDefault(); csvDropZone.classList.add('dragover'); });
+  csvDropZone.addEventListener('dragleave', () => csvDropZone.classList.remove('dragover'));
+  csvDropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    csvDropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) loadCSV(file);
+  });
+  csvFileInput.addEventListener('change', () => { if (csvFileInput.files[0]) loadCSV(csvFileInput.files[0]); });
+
+  batchClearBtn.addEventListener('click', () => {
+    csvData    = null;
+    resumeFrom = 0;
+    csvFileInput.value = '';
+    csvLoadError.style.display = 'none';
+    csvLoadError.textContent   = '';
+    columnSelect.innerHTML = '';
+    colPickerList.innerHTML = '';
+    colPickerLabel.textContent = '—';
+    outputColInput.value = '';
+    outputColInput.classList.remove('invalid');
+    outputColError.style.display = 'none';
+    codeAllBtn.disabled = true;
+    previewArea.style.display = 'none';
+    previewTableWrap.style.display = 'none';
+    previewTbody.innerHTML = '';
+    batchControls.classList.remove('visible');
+    csvDropZone.style.display = '';
+    codeAllProgress.style.display = 'none';
+    downloadBtn.style.display = 'none';
+    resumeBtn.style.display = 'none';
+  });
+
+  // RFC 4180-compliant CSV parser
+  function parseCSV(text) {
+    function detectSeparator(text) {
+      const counts = { ',': 0, ';': 0, '\t': 0 };
+      let inQuote = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '"') { inQuote = !inQuote; continue; }
+        if (!inQuote && ch in counts) counts[ch]++;
+      }
+      return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+    }
+
+    const sep = detectSeparator(text);
+
+    function tokenise(text, sep) {
+      const rows = [];
+      let row = [], cell = '', inQuote = false, i = 0;
+      while (i < text.length) {
+        const ch = text[i];
+        if (inQuote) {
+          if (ch === '"') {
+            if (text[i + 1] === '"') { cell += '"'; i += 2; }
+            else { inQuote = false; i++; }
+          } else { cell += ch; i++; }
+        } else {
+          if (ch === '"') { inQuote = true; i++; }
+          else if (ch === sep) { row.push(cell); cell = ''; i++; }
+          else if (ch === '\r' && text[i + 1] === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; i += 2; }
+          else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; i++; }
+          else { cell += ch; i++; }
+        }
+      }
+      if (cell || row.length) { row.push(cell); rows.push(row); }
+      if (rows.length && rows[rows.length - 1].every(c => c === '')) rows.pop();
+      return rows;
+    }
+
+    const allRows = tokenise(text, sep);
+    if (allRows.length === 0) return { headers: [], rows: [], sep, error: 'File is empty.' };
+
+    const headers = allRows[0].map(h => h.trim());
+    const rows    = allRows.slice(1);
+
+    // Validation: unnamed columns
+    const blankHeaders = headers.map((h, i) => i).filter(i => headers[i] === '');
+    if (blankHeaders.length > 0)
+      return { headers, rows, sep, error: `Column${blankHeaders.length > 1 ? 's' : ''} ${blankHeaders.map(i => i + 1).join(', ')} ${blankHeaders.length > 1 ? 'have' : 'has'} no header name. All columns must be named.` };
+
+    // Validation: inconsistent column count
+    const expectedCols = headers.length;
+    const badRows = rows.map((r, i) => ({ i, len: r.length })).filter(({ len }) => len !== expectedCols);
+    if (badRows.length > 0) {
+      const examples = badRows.slice(0, 3).map(({ i, len }) => `row ${i + 2} (${len} cols)`).join(', ');
+      return { headers, rows, sep, error: `Inconsistent column count — expected ${expectedCols}, found ${examples}${badRows.length > 3 ? ` … and ${badRows.length - 3} more` : ''}.` };
+    }
+
+    return { headers, rows, sep };
+  }
+
+  const csvLoadError = document.getElementById('csv-load-error');
+
+  function loadCSV(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const parsed = parseCSV(e.target.result);
+      csvLoadError.style.display = 'none';
+      csvLoadError.textContent   = '';
+
+      if (parsed.error) {
+        csvFileInput.value = '';
+        csvLoadError.textContent   = `⚠ ${parsed.error}`;
+        csvLoadError.style.display = 'block';
+        return;
+      }
+
+      csvData    = parsed;
+      resumeFrom = 0;
+      batchFileName.textContent = file.name;
+      batchFileMeta.textContent = `${csvData.rows.length} rows · ${csvData.headers.length} columns`;
+      columnSelect.innerHTML = '';
+      const savedCol = localStorage.getItem(LS_LAST_COL);
+      let savedIdx = -1;
+      csvData.headers.forEach((h, i) => {
+        const opt = document.createElement('option');
+        opt.value = h; opt.textContent = h;
+        columnSelect.appendChild(opt);
+        if (h === savedCol) savedIdx = i;
+      });
+      if (savedIdx >= 0) columnSelect.selectedIndex = savedIdx;
+      csvDropZone.style.display = 'none';
+      batchControls.classList.add('visible');
+      buildColPicker();
+      setPickerDisplay(columnSelect.value);
+      previewArea.style.display = csvData.rows.length >= 5 ? 'flex' : 'none';
+      outputColInput.value = '';
+      outputColInput.classList.remove('invalid');
+      outputColError.style.display = 'none';
+      codeAllBtn.disabled = true;
+      codeAllProgress.style.display = 'none';
+      downloadBtn.style.display = 'none';
+      resumeBtn.style.display = 'none';
+      previewBtn.disabled = false;
+    };
+    reader.readAsText(file);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function trunc(s, n) {
+    s = s.trim();
+    return s.length > n ? s.slice(0, n) + '\u2026' : s;
+  }
+
+  // ── Custom column picker ──────────────────────────────────────
+  const colPickerBtn   = document.getElementById('col-picker-btn');
+  const colPickerLabel = document.getElementById('col-picker-label');
+  const colPickerList  = document.getElementById('col-picker-list');
+
+  function buildColPicker() {
+    colPickerList.innerHTML = '';
+    if (!csvData) return;
+    csvData.headers.forEach((h, colIdx) => {
+      const samples = csvData.rows
+        .map(r => (r[colIdx] ?? '').trim())
+        .filter(v => v !== '')
+        .slice(0, 3);
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      li.dataset.value = h;
+      li.innerHTML =
+        `<span class="cp-col-name">${escapeHtml(h)}</span>` +
+        (samples.length
+          ? `<span class="cp-samples">${samples.map(v => `<span>${escapeHtml(trunc(v, 40))}</span>`).join('')}</span>`
+          : `<span class="cp-samples cp-empty">no values</span>`);
+      li.setAttribute('tabindex', '0');
+      li.addEventListener('click', () => selectCol(h));
+      colPickerList.appendChild(li);
+    });
+    // restore selection
+    const cur = columnSelect.value;
+    if (cur) setPickerDisplay(cur);
+  }
+
+  function setPickerDisplay(val) {
+    colPickerLabel.textContent = val || '—';
+    colPickerList.querySelectorAll('li').forEach(li => {
+      li.classList.toggle('selected', li.dataset.value === val);
+    });
+  }
+
+  function selectCol(val) {
+    columnSelect.value = val;
+    setPickerDisplay(val);
+    closeColPicker();
+    // fire change logic
+    localStorage.setItem(LS_LAST_COL, val);
+    validateOutputCol();
+  }
+
+  function openColPicker() {
+    colPickerList.style.display = 'block';
+    colPickerBtn.setAttribute('aria-expanded', 'true');
+    // scroll selected item into view
+    const sel = colPickerList.querySelector('li.selected');
+    if (sel) sel.scrollIntoView({ block: 'nearest' });
+  }
+
+  function closeColPicker() {
+    colPickerList.style.display = 'none';
+    colPickerBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  colPickerBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    colPickerList.style.display === 'block' ? closeColPicker() : openColPicker();
+  });
+
+  document.addEventListener('click', () => closeColPicker());
+  colPickerList.addEventListener('click', e => e.stopPropagation());
+
+  // keyboard nav
+  colPickerBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+      e.preventDefault(); openColPicker();
+      colPickerList.querySelector('li.selected, li')?.focus();
+    }
+  });
+  colPickerList.addEventListener('keydown', (e) => {
+    const items = [...colPickerList.querySelectorAll('li')];
+    const idx   = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); items[Math.min(idx+1, items.length-1)]?.focus(); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); idx > 0 ? items[idx-1]?.focus() : colPickerBtn.focus(); }
+    if (e.key === 'Enter')     { e.preventDefault(); document.activeElement?.click(); }
+    if (e.key === 'Escape')    { closeColPicker(); colPickerBtn.focus(); }
+  });
+  // Remember last selected column (native select still fires for external code)
+  columnSelect.addEventListener('change', () => {
+    localStorage.setItem(LS_LAST_COL, columnSelect.value);
+    validateOutputCol();
+  });
+
+  // ── Output column validation ──────────────────────────────────
+  function validateOutputCol() {
+    if (busyAbort) return;
+    const val = outputColInput.value;
+    const validChars = /^[A-Za-z0-9_-]+$/.test(val);
+    const notDuplicate = !csvData || !csvData.headers.map(h => h.toLowerCase()).includes(val.toLowerCase());
+    if (!val) {
+      outputColError.style.display = 'none';
+      outputColInput.classList.remove('invalid');
+      codeAllBtn.disabled = true;
+    } else if (!validChars) {
+      outputColError.textContent = 'Only letters, numbers, - and _ allowed';
+      outputColError.style.display = '';
+      outputColInput.classList.add('invalid');
+      codeAllBtn.disabled = true;
+    } else if (!notDuplicate) {
+      outputColError.textContent = 'Name already exists as a column';
+      outputColError.style.display = '';
+      outputColInput.classList.add('invalid');
+      codeAllBtn.disabled = true;
+    } else {
+      outputColError.style.display = 'none';
+      outputColInput.classList.remove('invalid');
+      codeAllBtn.disabled = false;
+    }
+  }
+
+  outputColInput.addEventListener('input', validateOutputCol);
+
+  // ── Batch: preview ───────────────────────────────────────────
+  const previewTableWrap = document.getElementById('preview-table-wrap');
+  const previewColHeader = document.getElementById('preview-col-header');
+  const previewTbody     = document.getElementById('preview-tbody');
+
+  async function fetchCoding(text, signal) {
+    const messages = [];
+    const ctx = contextInput.value.trim();
+    if (ctx) messages.push({ role: 'system', content: ctx });
+    messages.push({ role: 'user', content: text });
+
+    const res = await fetch(CHAT_URL, {
+      method: 'POST',
+      signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: modelSelect.value,
+        messages,
+        stream: true
+      })
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText  = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const lines = decoder.decode(value, { stream: true }).split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') break;
+        try {
+          const delta = JSON.parse(data).choices?.[0]?.delta?.content;
+          if (delta) fullText += delta;
+        } catch { /* skip */ }
+      }
+    }
+    return fullText;
+  }
+
+  previewBtn.addEventListener('click', async () => {
+    if (busyAbort && previewBtn.innerHTML.includes('Stop')) {
+      busyAbort.abort(); return;
+    }
+    if (!csvData || busyAbort) return;
+
+    const colName = columnSelect.value;
+    const colIdx  = csvData.headers.indexOf(colName);
+    if (colIdx === -1) return;
+
+    const nonEmpty = csvData.rows.filter(row => (row[colIdx] ?? '').trim() !== '');
+    const sample   = [...nonEmpty].sort(() => Math.random() - 0.5).slice(0, 5);
+
+    previewColHeader.textContent = colName;
+    previewTbody.innerHTML = '';
+    const trs = sample.map(row => {
+      const cellText = row[colIdx] ?? '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${cellText}</td><td class="loading-cell">…</td>`;
+      previewTbody.appendChild(tr);
+      return { tr, cellText };
+    });
+
+    previewTableWrap.style.display = 'block';
+
+    const abort = new AbortController();
+    setBusy(abort);
+    previewBtn.innerHTML = `${ICON_STOP} Stop preview`;
+    previewBtn.disabled = false;
+
+    try {
+      await Promise.all(trs.map(async ({ tr, cellText }) => {
+        const codingCell = tr.cells[1];
+        try {
+          const result = await fetchCoding(cellText, abort.signal);
+          codingCell.textContent = result;
+          codingCell.classList.remove('loading-cell');
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            codingCell.textContent = 'stopped';
+            codingCell.classList.remove('loading-cell');
+            codingCell.style.color = 'var(--text-muted)';
+          } else {
+            codingCell.textContent = 'error';
+            codingCell.classList.remove('loading-cell');
+            codingCell.style.color = '#dc2626';
+          }
+        }
+      }));
+    } finally {
+      clearBusy();
+      previewBtn.innerHTML = `${ICON_PREVIEW} Preview coding for 5 random items`;
+      previewBtn.disabled = false;
+    }
+  });
+
+  // ── Code all / Resume ────────────────────────────────────────
+  const codeAllProgress      = document.getElementById('code-all-progress');
+  const codeAllProgressBar   = document.getElementById('code-all-progress-bar');
+  const codeAllProgressLabel = document.getElementById('code-all-progress-label');
+  const codeAllLastRow       = document.getElementById('code-all-last-row');
+  const codeAllLastColHeader = document.getElementById('code-all-last-col-header');
+  const codeAllLastTbody     = document.getElementById('code-all-last-tbody');
+  const downloadBtn          = document.getElementById('download-btn');
+
+  async function runCoding(startFrom) {
+    if (!csvData || busyAbort) return;
+
+    const outCol  = outputColInput.value.trim();
+    const colName = columnSelect.value;
+    const colIdx  = csvData.headers.indexOf(colName);
+    if (colIdx === -1) return;
+
+    if (startFrom === 0 && csvData.headers.map(h => h.toLowerCase()).includes(outCol.toLowerCase())) {
+      outputColError.textContent = 'Name already exists as a column — please choose a different output column name';
+      outputColError.style.display = '';
+      outputColInput.classList.add('invalid');
+      return;
+    }
+
+    // All non-empty rows
+    const allRows = csvData.rows.filter(row => (row[colIdx] ?? '').trim() !== '');
+    const total   = allRows.length;
+    if (total === 0) return;
+    const rows = allRows.slice(startFrom);
+
+    const abort = new AbortController();
+    setBusy(abort);
+    codeAllBtn.innerHTML  = `${ICON_STOP} Stop`;
+    codeAllBtn.disabled     = false;
+    resumeBtn.style.display = 'none';
+    outputColInput.disabled = true;
+    columnSelect.disabled   = true;
+    downloadBtn.style.display = 'none';
+    codeAllProgress.style.display      = 'flex';
+    codeAllProgress.style.flexDirection = 'column';
+    codeAllProgress.style.gap           = '8px';
+    codeAllProgressBar.style.width      = `${Math.round((startFrom / total) * 100)}%`;
+    codeAllProgressLabel.textContent    = `${startFrom} / ${total}`;
+    codeAllLastColHeader.textContent    = colName;
+    if (startFrom === 0) codeAllLastRow.style.display = 'none';
+
+    let done    = startFrom;
+    let stopped = false;
+
+    // Process rows in chunks of cfgConcurrency
+    function escapeCell(val) {
+      const s = String(val ?? '');
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? `"${s.replace(/"/g, '""')}"` : s;
+    }
+
+    async function processWithRetry(row, signal) {
+      const cellText = row[colIdx] ?? '';
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+        try {
+          return { cellText, answer: await fetchCoding(cellText, signal) };
+        } catch (err) {
+          if (err.name === 'AbortError') throw err;
+          if (attempt === 1) return { cellText, answer: 'ERROR' };
+          // wait briefly before retry
+          await new Promise(r => setTimeout(r, 800));
+        }
+      }
+    }
+
+    outer:
+    for (let i = 0; i < rows.length; i += cfgConcurrency) {
+      if (abort.signal.aborted) { stopped = true; break; }
+      const chunk = rows.slice(i, i + cfgConcurrency);
+
+      const results = await Promise.all(chunk.map(row =>
+        processWithRetry(row, abort.signal).catch(err => {
+          if (err.name === 'AbortError') return null;
+          return { cellText: row[colIdx] ?? '', answer: 'ERROR' };
+        })
+      ));
+
+      for (const result of results) {
+        if (result === null) { stopped = true; break outer; }
+        result.row = chunk[results.indexOf(result)];
+        result.row.__coding = result.answer;
+        done++;
+        const pct = Math.round((done / total) * 100);
+        codeAllProgressBar.style.width   = pct + '%';
+        codeAllProgressLabel.textContent = `${done} / ${total}`;
+        codeAllLastTbody.innerHTML = `<tr><td>${result.cellText}</td><td>${result.answer}</td></tr>`;
+        codeAllLastRow.style.display = '';
+      }
+    }
+
+    // Build CSV
+    const newHeaders = [...csvData.headers, outCol];
+    const newRows    = csvData.rows.map(row => {
+      const coding = row.__coding ?? '';
+      delete row.__coding;
+      return [...row, coding];
+    });
+
+    const BOM = '\uFEFF';
+    const csvBlob = new Blob([
+      BOM + [newHeaders, ...newRows].map(r => r.map(escapeCell).join(',')).join('\n')
+    ], { type: 'text/csv;charset=utf-8;' });
+    const csvURL = URL.createObjectURL(csvBlob);
+
+    if (stopped) {
+      resumeFrom = done;
+      resumeFromLabel.textContent = done + 1;
+      resumeBtn.style.display = '';
+      resumeBtn.disabled = false;
+      codeAllProgressLabel.textContent = `Stopped at ${done} / ${total}`;
+      downloadBtn.innerHTML = `${ICON_DOWNLOAD} Download CSV (${done} / ${total} coded)`;
+    } else {
+      resumeFrom = 0;
+      resumeBtn.style.display = 'none';
+      downloadBtn.innerHTML = `${ICON_DOWNLOAD} Download CSV`;
+    }
+
+    downloadBtn.onclick = () => {
+      const a = document.createElement('a');
+      a.href     = csvURL;
+      a.download = (batchFileName.textContent.replace(/\.csv$/i, '') || 'output') + '_coded.csv';
+      a.click();
+    };
+    downloadBtn.style.display = '';
+
+    clearBusy();
+    codeAllBtn.innerHTML  = `${ICON_ZAP} Code all`;
+    outputColInput.disabled = false;
+    columnSelect.disabled   = false;
+  }
+
+  codeAllBtn.addEventListener('click', async () => {
+    if (busyAbort && codeAllBtn.innerHTML.includes('Stop')) {
+      busyAbort.abort(); return;
+    }
+    resumeFrom = 0;
+    await runCoding(0);
+  });
+
+  resumeBtn.addEventListener('click', async () => {
+    if (!csvData || busyAbort) return;
+    await runCoding(resumeFrom);
+  });
+
+  // ── Model loading ────────────────────────────────────────────
+  async function loadModels() {
+    modelSelect.disabled = true;
+    gsModelHint.style.display = 'none';
+    try {
+      const res = await fetch(MODELS_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const models = PROVIDERS[currentProvider].parseModels(data);
+      modelSelect.innerHTML = '';
+      if (models.length === 0) {
+        modelSelect.innerHTML = '<option value="">— no models found —</option>';
+        gsModelHint.style.display = 'flex';
+      } else {
+        models.forEach(id => {
+          const opt = document.createElement('option');
+          opt.value = id; opt.textContent = id;
+          modelSelect.appendChild(opt);
+        });
+      }
+    } catch {
+      modelSelect.innerHTML = '<option value="">— could not reach service —</option>';
+      gsModelHint.style.display = 'flex';
+    } finally {
+      modelSelect.disabled = false;
+      if (typeof updateBatchHint === 'function') updateBatchHint();
+    }
+  }
+
+  // ── Getting-started banner ────────────────────────────────────
+  const LS_GS_DISMISSED = 'rate-lm:gs_dismissed';
+  const gsBanner    = document.getElementById('gs-banner');
+  const gsDismiss   = document.getElementById('gs-dismiss');
+  const gsModelHint = document.getElementById('gs-model-hint');
+  const gsBatchHint = document.getElementById('gs-batch-hint');
+
+  if (localStorage.getItem(LS_GS_DISMISSED)) {
+    gsBanner.style.display = 'none';
+  }
+
+  gsDismiss.addEventListener('click', () => {
+    gsBanner.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+    gsBanner.style.opacity    = '0';
+    gsBanner.style.transform  = 'translateY(-6px)';
+    setTimeout(() => { gsBanner.style.display = 'none'; }, 260);
+    localStorage.setItem(LS_GS_DISMISSED, '1');
+  });
+
+  document.getElementById('gs-help-btn').addEventListener('click', () => {
+    localStorage.removeItem(LS_GS_DISMISSED);
+    gsBanner.style.transition = '';
+    gsBanner.style.opacity    = '';
+    gsBanner.style.transform  = '';
+    gsBanner.style.display    = '';
+  });
+
+  // Show batch hint when no model is loaded yet
+  function updateBatchHint() {
+    const noModel = !modelSelect.value;
+    gsBatchHint.style.display = noModel ? 'flex' : 'none';
+  }
+  modelSelect.addEventListener('change', updateBatchHint);
+
+  refreshBtn.addEventListener('click', loadModels);
+  loadModels();
+
+  // ── Legal modals ─────────────────────────────────────────────
+  document.getElementById('impressum-link').addEventListener('click', (e) => {
+    e.preventDefault(); document.getElementById('impressum-modal').style.display = '';
+  });
+  document.getElementById('privacy-link').addEventListener('click', (e) => {
+    e.preventDefault(); document.getElementById('privacy-modal').style.display = '';
+  });
+  document.getElementById('license-link').addEventListener('click', (e) => {
+    e.preventDefault(); document.getElementById('license-modal').style.display = '';
+  });
+  document.querySelectorAll('.modal-close-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById(btn.dataset.modal).style.display = 'none';
+    });
+  });
+  document.querySelectorAll('#impressum-modal, #privacy-modal, #license-modal').forEach(modal => {
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+  });
+
+  // ── Auto-resize textareas ────────────────────────────────────
+  function autoResize(el, maxH) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, maxH) + 'px';
+  }
+
+  autoResize(contextInput, 480);
+  autoResize(textInput, 480);
+
+  textInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+
+  sendBtn.addEventListener('click', send);
+
+  // ── Error helpers ────────────────────────────────────────────
+  function showError(msg) { errorMsg.textContent = msg; errorMsg.style.display = 'block'; }
+  function clearError()   { errorMsg.style.display = 'none'; errorMsg.textContent = ''; }
+
+  // ── Send ─────────────────────────────────────────────────────
+  async function send() {
+    if (busyAbort) return;
+    const text = textInput.value.trim();
+    if (!text) return;
+    clearError();
+
+    responseContainer.innerHTML = '';
+    const bubble = document.createElement('div');
+    bubble.className = 'response-bubble loading';
+    bubble.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    responseContainer.appendChild(bubble);
+
+    textInput.value = '';
+    localStorage.setItem(LS_TEXT, '');
+    textInput.style.height = 'auto';
+
+    const abort = new AbortController();
+    setBusy(abort);
+    sendBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
+    sendBtn.disabled  = false;
+    sendBtn.onclick   = () => abort.abort();
+
+    const messages = [];
+    const ctx = contextInput.value.trim();
+    if (ctx) messages.push({ role: 'system', content: ctx });
+    messages.push({ role: 'user', content: text });
+
+    try {
+      const res = await fetch(CHAT_URL, {
+        method: 'POST',
+        signal: abort.signal,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: modelSelect.value,
+          messages,
+          stream: true
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`HTTP ${res.status}: ${err}`);
+      }
+
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText  = '';
+
+      bubble.classList.remove('loading');
+      bubble.textContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const lines = decoder.decode(value, { stream: true }).split('\n');
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') break;
+          try {
+            const delta = JSON.parse(data).choices?.[0]?.delta?.content;
+            if (delta) { fullText += delta; bubble.textContent = fullText; }
+          } catch { /* skip */ }
+        }
+      }
+
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        bubble.classList.remove('loading');
+        if (!bubble.textContent) bubble.remove();
+      } else {
+        bubble.remove();
+        showError(`Error: ${err.message}. Is the service running at ${apiBase}?`);
+      }
+    } finally {
+      clearBusy();
+      sendBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+      sendBtn.onclick = send;
+      textInput.focus();
+    }
+  }
+
+</script>
+</body>
+</html>
