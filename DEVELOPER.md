@@ -412,7 +412,10 @@ Both the app (`http://localhost:8000`) and the LLM service (`http://127.0.0.1:�
 
 #### Future outlook
 
-Once LM Studio and Ollama ship the `Access-Control-Allow-Private-Network: true` header in their CORS preflight responses, Chrome 142+ users will be able to use the GitHub Pages version again (with a one-time browser permission prompt). Monitor the linked issues for progress.
+Two upstream fixes could restore full browser compatibility with the GitHub Pages version:
+
+- **`Access-Control-Allow-Private-Network: true` header** — once LM Studio and Ollama send this header in their CORS preflight responses, Chrome 142+ users will be able to use the GitHub Pages version again (with a one-time browser permission prompt). Monitor the linked issues for progress ([LM Studio #392](https://github.com/lmstudio-ai/lmstudio-bug-tracker/issues/392), [Ollama #7000](https://github.com/ollama/ollama/issues/7000)).
+- **Native HTTPS support in LLM services** — if LM Studio or Ollama add an HTTPS server option, users could point the app at an `https://` URL, eliminating the mixed-content problem entirely. The app already detects this scenario and prompts users to enable HTTPS when available.
 
 ---
 

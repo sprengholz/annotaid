@@ -188,18 +188,18 @@ header h1 {
 
 #gs-model-hint {
   width: 100%;
-  background: #fef9ed;
-  border: 1px solid #f0d080;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
   border-radius: 8px;
   padding: 8px 12px;
-  color: #92660a;
+  color: #dc2626;
   margin-top: 4px;
   order: 10; /* pushes below the select in flex row */
   flex-basis: 100%;
 }
 
-#gs-model-hint svg { stroke: #92660a; }
-#gs-model-hint strong { color: #7a5408; }
+#gs-model-hint svg { stroke: #dc2626; }
+#gs-model-hint strong { color: #b91c1c; }
 
 /* ── Model picker ── */
 #model-row {

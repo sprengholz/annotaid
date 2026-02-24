@@ -57,7 +57,7 @@
     <div class="gs-step">
       <span class="gs-num">1</span>
       <div class="gs-text">
-        <strong>Start your local LLM service</strong> (e.g. LM Studio or Ollama), load the model(s) you want to use, and enable the local server.
+        <strong>Start your local LLM service</strong> (e.g., LM Studio or Ollama), load the model(s) you want to use, and enable the local server.
       </div>
     </div>
     <div class="gs-step">
@@ -75,7 +75,7 @@
     <div class="gs-step">
       <span class="gs-num">4</span>
       <div class="gs-text">
-        <strong>Write a prompt</strong> in the Context field — this is the instruction your model will follow for every item.
+        <strong>Write a prompt</strong> in the CONTEXT field — this is the instruction your model will follow for every item.
       </div>
     </div>
     <div class="gs-step">
@@ -96,7 +96,7 @@
   <div id="gs-model-hint" class="gs-inline-hint" style="display:none;">
     <!-- Lucide: alert-circle -->
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    <span>Could not reach service. Make sure your local LLM service is running.</span>
+    <span id="gs-model-hint-text">Could not reach service. Make sure your local LLM service is running.</span>
   </div>
   <button id="refresh-btn" title="Refresh models">
     <!-- Lucide: refresh-cw -->
@@ -1151,6 +1151,11 @@
       }
     } catch {
       modelSelect.innerHTML = '<option value="">— could not reach service —</option>';
+      if (window.isSecureContext && apiBase.startsWith('http://')) {
+        gsModelHintText.textContent = 'Mixed content blocked: this page is served over HTTPS but the LLM service URL uses HTTP. Enable HTTPS in your LLM service (if available), use Firefox, or serve the app locally over HTTP (see README).';
+      } else {
+        gsModelHintText.textContent = 'Could not reach service. Make sure your local LLM service is running.';
+      }
       gsModelHint.style.display = 'flex';
     } finally {
       modelSelect.disabled = false;
@@ -1162,7 +1167,8 @@
   const LS_GS_DISMISSED = 'rate-lm:gs_dismissed';
   const gsBanner    = document.getElementById('gs-banner');
   const gsDismiss   = document.getElementById('gs-dismiss');
-  const gsModelHint = document.getElementById('gs-model-hint');
+  const gsModelHint     = document.getElementById('gs-model-hint');
+  const gsModelHintText = document.getElementById('gs-model-hint-text');
   const gsBatchHint = document.getElementById('gs-batch-hint');
 
   if (localStorage.getItem(LS_GS_DISMISSED)) {
@@ -1306,7 +1312,11 @@
         if (!bubble.textContent) bubble.remove();
       } else {
         bubble.remove();
-        showError(`Error: ${err.message}. Is the service running at ${apiBase}?`);
+        if (window.isSecureContext && apiBase.startsWith('http://')) {
+          showError(`Mixed content blocked: this page is served over HTTPS but the LLM service uses HTTP. Enable HTTPS in your LLM service (if available), use Firefox, or serve the app locally over HTTP (see README).`);
+        } else {
+          showError(`Error: ${err.message}. Is the service running at ${apiBase}?`);
+        }
       }
     } finally {
       clearBusy();
