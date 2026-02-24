@@ -17,6 +17,7 @@
 8. [UI Architecture](#ui-architecture)
 9. [Design System](#design-system)
 10. [Deployment](#deployment)
+    - [HTTPS / CORS Constraints](#https--cors-constraints)
 11. [Contributing](#contributing)
 
 ---
@@ -53,7 +54,7 @@ The application has no build step, no framework dependencies, and no backend. It
 │  └──────────────┬────────────────────┘  │
 │                 │                       │
 └─────────────────┼───────────────────────┘
-                  │  HTTP (localhost only)
+                  │  HTTP to 127.0.0.1 (loopback exception applies)
                   ▼
 ┌─────────────────────────────────────────┐
 │     Local LLM Service (user-provided)   │
@@ -365,6 +366,53 @@ server {
   index index.html;
 }
 ```
+
+---
+
+### HTTPS / CORS Constraints
+
+#### How `127.0.0.1` is resolved
+
+`127.0.0.1` always resolves to **the machine running the browser**, not the machine serving the HTML file. This is intentional — each user connects to their *own* local LLM.
+
+#### Mixed content, the loopback exception, and Chrome's Local Network Access policy
+
+Browser behaviour here has changed significantly across versions. The table below reflects the current state:
+
+| Browser | `fetch("http://127.0.0.1:…")` from GitHub Pages (HTTPS) | Notes |
+|---|---|---|
+| Firefox 84+ | ✅ Works | Simple loopback exception; no extra headers needed |
+| Chrome ≤ 141 | ✅ Works | Old loopback exception (same as Firefox) |
+| **Chrome 142+** | ❌ **Blocked** | New Local Network Access policy — requires `Access-Control-Allow-Private-Network: true` from the LLM server |
+| Safari | ❌ Blocked | No loopback exception at all ([WebKit bug #171934](https://bugs.webkit.org/show_bug.cgi?id=171934)) |
+
+**Chrome 142 introduced Local Network Access (LNA)**, which requires local servers to opt in by responding to CORS preflight requests with the header `Access-Control-Allow-Private-Network: true`. Neither LM Studio nor Ollama send this header yet — both have open issues ([LM Studio #392](https://github.com/lmstudio-ai/lmstudio-bug-tracker/issues/392), [Ollama #7000](https://github.com/ollama/ollama/issues/7000)). Until those are fixed upstream, **Chrome 142+ users cannot use the GitHub Pages version**.
+
+#### Required user-side configuration (all browsers)
+
+Users must enable CORS in their LLM service regardless of how the app is served:
+
+| Service | How to enable CORS |
+|---|---|
+| LM Studio | *Settings → Local Server → Enable CORS* |
+| Ollama | Set env variable `OLLAMA_ORIGINS=https://sprengholz.github.io` (or `*`) before starting |
+
+#### Workaround: serve the app locally over HTTP
+
+This is the **recommended approach for all users today**, since it bypasses all of the above restrictions entirely — no LNA policy, no mixed content, no `Access-Control-Allow-Private-Network` header needed:
+
+```bash
+git clone https://github.com/sprengholz/annotaid.git
+cd annotaid
+python -m http.server 8000
+# Open http://localhost:8000
+```
+
+Both the app (`http://localhost:8000`) and the LLM service (`http://127.0.0.1:…`) are plain HTTP on the same machine. All browsers work, including Safari and Chrome 142+. CORS still needs to be enabled in the LLM service.
+
+#### Future outlook
+
+Once LM Studio and Ollama ship the `Access-Control-Allow-Private-Network: true` header in their CORS preflight responses, Chrome 142+ users will be able to use the GitHub Pages version again (with a one-time browser permission prompt). Monitor the linked issues for progress.
 
 ---
 
