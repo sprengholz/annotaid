@@ -1252,9 +1252,6 @@
     bubble.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
     responseContainer.appendChild(bubble);
 
-    textInput.value = '';
-    localStorage.setItem(LS_TEXT, '');
-    textInput.style.height = 'auto';
 
     const abort = new AbortController();
     setBusy(abort);
