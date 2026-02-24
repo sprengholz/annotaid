@@ -1,4 +1,4 @@
-# annotaid — Developer Documentation
+# annotaid — Developer Documentation (v 1.0)
 
 ## Table of Contents
 
@@ -36,7 +36,7 @@ The application has no build step, no framework dependencies, and no backend. It
 │              Browser (Client)           │
 │                                         │
 │  ┌───────────┐   ┌────────────────────┐ │
-│  │  index.html│   │     style.css      │ │
+│  │ index.html│   │     style.css      │ │
 │  │ (HTML+JS) │   │  (CSS variables +  │ │
 │  │           │   │   component styles)│ │
 │  └─────┬─────┘   └────────────────────┘ │
@@ -59,7 +59,7 @@ The application has no build step, no framework dependencies, and no backend. It
 │     Local LLM Service (user-provided)   │
 │                                         │
 │   LM Studio  │  Ollama  │  Compatible   │
-│  :1234        │  :11434  │  endpoint     │
+│ :1234        │  :11434  │  endpoint     │
 └─────────────────────────────────────────┘
 ```
 
