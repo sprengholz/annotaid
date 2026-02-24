@@ -187,7 +187,12 @@
     </div>
     <div id="error-msg"></div>
     <div id="send-hint">Enter to send · Shift+Enter for new line</div>
-    <div id="response-container"></div>
+    <div id="response-section" style="display:none;">
+      <div class="input-section">
+        <div class="input-label">model output</div>
+        <div id="response-container"></div>
+      </div>
+    </div>
   </div>
 
   <!-- BATCH panel -->
@@ -448,6 +453,7 @@
   const serverSaveBtn      = document.getElementById('server-save-btn');
   const serverCancelBtn    = document.getElementById('server-cancel-btn');
   const responseContainer  = document.getElementById('response-container');
+  const responseSection    = document.getElementById('response-section');
   const textInput          = document.getElementById('text-input');
   const contextInput       = document.getElementById('context-input');
   const tokenCounter       = document.getElementById('token-counter');
@@ -1251,9 +1257,10 @@
     clearError();
 
     responseContainer.innerHTML = '';
+    responseSection.style.display = '';
     const bubble = document.createElement('div');
     bubble.className = 'response-bubble loading';
-    bubble.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    bubble.innerHTML = '<span class="loading-cursor"></span>';
     responseContainer.appendChild(bubble);
 
 
@@ -1310,9 +1317,10 @@
     } catch (err) {
       if (err.name === 'AbortError') {
         bubble.classList.remove('loading');
-        if (!bubble.textContent) bubble.remove();
+        if (!bubble.textContent) { bubble.remove(); responseSection.style.display = 'none'; }
       } else {
         bubble.remove();
+        responseSection.style.display = 'none';
         if (window.isSecureContext && apiBase.startsWith('http://')) {
           showError(`Mixed content blocked: this page is served over HTTPS but the LLM service uses HTTP. Enable HTTPS in your LLM service (if available), use Firefox, or serve the app locally over HTTP (see README).`);
         } else {
