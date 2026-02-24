@@ -1025,6 +1025,8 @@
     codeAllLastColHeader.textContent    = colName;
     if (startFrom === 0) codeAllLastRow.style.display = 'none';
 
+    console.log(`[annotaid] Batch ${startFrom === 0 ? 'started' : `resumed from row ${startFrom + 1}`} — ${new Date().toLocaleString()}`);
+
     let done    = startFrom;
     let stopped = false;
 
@@ -1090,6 +1092,7 @@
     const csvURL = URL.createObjectURL(csvBlob);
 
     if (stopped) {
+      console.log(`[annotaid] Batch paused at row ${done} / ${total} — ${new Date().toLocaleString()}`);
       resumeFrom = done;
       resumeFromLabel.textContent = done + 1;
       resumeBtn.style.display = '';
@@ -1097,6 +1100,7 @@
       codeAllProgressLabel.textContent = `Stopped at ${done} / ${total}`;
       downloadBtn.innerHTML = `${ICON_DOWNLOAD} Download CSV (${done} / ${total} coded)`;
     } else {
+      console.log(`[annotaid] Batch finished (${total} rows) — ${new Date().toLocaleString()}`);
       resumeFrom = 0;
       resumeBtn.style.display = 'none';
       downloadBtn.innerHTML = `${ICON_DOWNLOAD} Download CSV`;
@@ -1257,7 +1261,7 @@
     setBusy(abort);
     sendBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
     sendBtn.disabled  = false;
-    sendBtn.onclick   = () => abort.abort();
+    sendBtn.onclick   = (e) => { e.stopImmediatePropagation(); abort.abort(); };
 
     const messages = [];
     const ctx = contextInput.value.trim();
@@ -1318,7 +1322,7 @@
     } finally {
       clearBusy();
       sendBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
-      sendBtn.onclick = send;
+      sendBtn.onclick = null;
       textInput.focus();
     }
   }
