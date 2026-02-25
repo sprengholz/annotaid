@@ -407,6 +407,18 @@
   const ICON_ZAP      = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
   const ICON_DOWNLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
 
+  // ── Browser / context helpers ────────────────────────────────
+  const IS_FIREFOX = navigator.userAgent.includes('Firefox');
+  // True only when the page is on HTTPS (non-localhost) AND the API uses plain
+  // HTTP AND the browser actually blocks mixed content (i.e. not Firefox, which
+  // exempts loopback addresses from mixed-content blocking).
+  function isMixedContentBlocked() {
+    return window.location.protocol === 'https:'
+        && !['localhost', '127.0.0.1'].includes(window.location.hostname)
+        && apiBase.startsWith('http://')
+        && !IS_FIREFOX;
+  }
+
   // ── Constants ────────────────────────────────────────────────
   const LS_CONTEXT     = 'rate-lm:context';
   const LS_TEXT        = 'rate-lm:text';
@@ -1161,10 +1173,10 @@
       }
     } catch {
       modelSelect.innerHTML = '<option value="">— could not reach service —</option>';
-      if (window.isSecureContext && apiBase.startsWith('http://')) {
+      if (isMixedContentBlocked()) {
         gsModelHintText.textContent = 'Mixed content blocked: this page is served over HTTPS but the LLM service URL uses HTTP. Enable HTTPS in your LLM service (if available), use Firefox, or serve the app locally over HTTP (see README).';
       } else {
-        gsModelHintText.textContent = 'Could not reach service. Make sure your local LLM service is running.';
+        gsModelHintText.textContent = `Could not reach the LLM service at ${apiBase}. Make sure the service is running, a model is loaded, and the local server is started.`;
       }
       gsModelHint.style.display = 'flex';
     } finally {
@@ -1321,10 +1333,10 @@
       } else {
         bubble.remove();
         responseSection.style.display = 'none';
-        if (window.isSecureContext && apiBase.startsWith('http://')) {
+        if (isMixedContentBlocked()) {
           showError(`Mixed content blocked: this page is served over HTTPS but the LLM service uses HTTP. Enable HTTPS in your LLM service (if available), use Firefox, or serve the app locally over HTTP (see README).`);
         } else {
-          showError(`Error: ${err.message}. Is the service running at ${apiBase}?`);
+          showError(`Could not reach the LLM service at ${apiBase}. Make sure the service is running, a model is loaded, and the local server is started.`);
         }
       }
     } finally {
