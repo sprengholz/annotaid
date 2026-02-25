@@ -8,8 +8,15 @@ annotaid is a browser-based, no-code tool for LLM-assisted qualitative coding of
 
 Before using annotaid, you need a local LLM service running on your machine:
 
-- **<a href="https://lmstudio.ai" target="_blank">LM Studio</a>** — download, load a model, start the local server, and enable CORS under *Settings → Local Server → Enable CORS*
-- **<a href="https://ollama.com" target="_blank">Ollama</a>** — install, pull a model (`ollama pull <model>`), and set `OLLAMA_ORIGINS=*` before starting (`ollama serve`)
+- **<a href="https://lmstudio.ai" target="_blank">LM Studio</a>** — download and install the app, download a model from the model catalogue, load the model, start the local server (*Local Server* tab → *Start Server*), and enable CORS under *Settings → Local Server → Enable CORS*
+- **<a href="https://ollama.com" target="_blank">Ollama</a>** — install the app, pull a model (`ollama pull <model>`), and set `OLLAMA_ORIGINS=*` before starting the server (`ollama serve`)
+
+### Recommended model settings
+
+For consistent, reproducible coding results, configure the following in your LLM service before running annotaid:
+
+- **Temperature = 0** — Temperature controls how random the model's output is. Setting it to 0 makes the model deterministic: given the same input, it will always produce the same output. This is important for coding tasks where you want consistent labels, not random variation.
+- **Disable thinking (if available)** — Some models (e.g. DeepSeek-R1, QwQ) have a "thinking" or "reasoning" mode that generates a chain-of-thought before the final answer. This is unnecessary for structured coding tasks and produces noisy output that will end up in your results. Disable it if your model and service offer that option.
 
 ### Option 1 — Firefox (online, no download needed)
 

@@ -138,11 +138,18 @@ Then open `http://localhost:8000`.
 
 A local LLM service must be running before using the app:
 
-| Service | Default address | Notes |
+| Service | Default address | Setup |
 |---|---|---|
-| LM Studio | `http://127.0.0.1:1234` | Enable local server in the app |
-| Ollama | `http://127.0.0.1:11434` | `ollama serve` |
+| LM Studio | `http://127.0.0.1:1234` | Download a model, load it, start the local server (*Local Server* tab → *Start Server*), enable CORS under *Settings → Local Server → Enable CORS* |
+| Ollama | `http://127.0.0.1:11434` | Pull a model (`ollama pull <model>`), then `ollama serve` |
 | Other | User-configured | Must expose `/v1/chat/completions` |
+
+### Recommended model settings
+
+For consistent, reproducible results configure these settings in the LLM service before running annotaid:
+
+- **Temperature = 0** — Makes the model deterministic. Given the same input it will always produce the same output, which is important for reliable coding.
+- **Disable thinking (if available)** — Models with a "thinking" or "reasoning" mode (e.g. DeepSeek-R1, QwQ) prepend a chain-of-thought to their output. This is unnecessary for structured coding tasks and will produce noisy results. Disable it if the model and service support it.
 
 ---
 
