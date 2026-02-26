@@ -589,6 +589,11 @@ textarea::placeholder { color: var(--text-muted); }
   animation: fadeUp 0.25s ease both;
 }
 
+.response-bubble.loading {
+  animation: none; /* show cursor immediately, without the opacity:0 fade-in hiding it */
+  min-height: 1.5em; /* ensure the cursor has room to render even before text arrives */
+}
+
 .loading-cursor {
   display: inline-block;
   width: 0.6em;
