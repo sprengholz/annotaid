@@ -452,7 +452,7 @@
   let CHAT_URL   = `${apiBase}/v1/chat/completions`;
   let MODELS_URL = `${apiBase}${PROVIDERS[currentProvider].modelsPath}`;
 
-  let cfgConcurrency  = parseInt(localStorage.getItem(LS_CONCURRENCY) ?? '1');
+  let cfgConcurrency  = parseInt(localStorage.getItem(LS_CONCURRENCY) ?? '1') || 1;
 
   // ── Element refs ─────────────────────────────────────────────
   const modelSelect        = document.getElementById('model-select');
@@ -471,6 +471,8 @@
   const tokenCounter       = document.getElementById('token-counter');
   const sendBtn            = document.getElementById('send-btn');
   const errorMsg           = document.getElementById('error-msg');
+  const gsModelHint        = document.getElementById('gs-model-hint');
+  const gsModelHintText    = document.getElementById('gs-model-hint-text');
 
   // ── Global busy flag ─────────────────────────────────────────
   let busyAbort = null;
@@ -627,6 +629,7 @@
 
   let csvData     = null;
   let resumeFrom  = 0;   // index into csvData.rows to start/continue from
+  let lastCsvURL  = null;
 
   csvDropZone.addEventListener('click', () => csvFileInput.click());
   csvDropZone.addEventListener('dragover', (e) => { e.preventDefault(); csvDropZone.classList.add('dragover'); });
@@ -923,15 +926,19 @@
     const reader  = res.body.getReader();
     const decoder = new TextDecoder();
     let fullText  = '';
+    let buffer    = '';
 
+    outer:
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      const lines = decoder.decode(value, { stream: true }).split('\n');
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep any incomplete trailing line for the next chunk
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
         const data = line.slice(6).trim();
-        if (data === '[DONE]') break;
+        if (data === '[DONE]') break outer;
         try {
           const delta = JSON.parse(data).choices?.[0]?.delta?.content;
           if (delta) fullText += delta;
@@ -1021,6 +1028,9 @@
       return;
     }
 
+    // Clear any stale codings from a previous run (only on a fresh start, not on resume)
+    if (startFrom === 0) csvData.rows.forEach(row => delete row.__coding);
+
     // All non-empty rows
     const allRows = csvData.rows.filter(row => (row[colIdx] ?? '').trim() !== '');
     const total   = allRows.length;
@@ -1082,9 +1092,10 @@
         })
       ));
 
-      for (const result of results) {
+      for (let ri = 0; ri < results.length; ri++) {
+        const result = results[ri];
         if (result === null) { stopped = true; break outer; }
-        result.row = chunk[results.indexOf(result)];
+        result.row = chunk[ri];
         result.row.__coding = result.answer;
         done++;
         const pct = Math.round((done / total) * 100);
@@ -1097,17 +1108,16 @@
 
     // Build CSV
     const newHeaders = [...csvData.headers, outCol];
-    const newRows    = csvData.rows.map(row => {
-      const coding = row.__coding ?? '';
-      delete row.__coding;
-      return [...row, coding];
-    });
+    const newRows    = csvData.rows.map(row => [...row, row.__coding ?? '']);
+
+    if (lastCsvURL) { URL.revokeObjectURL(lastCsvURL); lastCsvURL = null; }
 
     const BOM = '\uFEFF';
     const csvBlob = new Blob([
       BOM + [newHeaders, ...newRows].map(r => r.map(escapeCell).join(',')).join('\n')
     ], { type: 'text/csv;charset=utf-8;' });
     const csvURL = URL.createObjectURL(csvBlob);
+    lastCsvURL = csvURL;
 
     if (stopped) {
       console.log(`[annotaid] Batch paused at row ${done} / ${total} — ${new Date().toLocaleString()}`);
@@ -1189,8 +1199,6 @@
   const LS_GS_DISMISSED = 'rate-lm:gs_dismissed';
   const gsBanner    = document.getElementById('gs-banner');
   const gsDismiss   = document.getElementById('gs-dismiss');
-  const gsModelHint     = document.getElementById('gs-model-hint');
-  const gsModelHintText = document.getElementById('gs-model-hint-text');
   const gsBatchHint = document.getElementById('gs-batch-hint');
 
   if (localStorage.getItem(LS_GS_DISMISSED)) {
@@ -1266,6 +1274,7 @@
     if (busyAbort) return;
     const text = textInput.value.trim();
     if (!text) return;
+    if (!modelSelect.value) { showError('No model selected. Please connect to your LLM service and select a model first.'); return; }
     clearError();
 
     responseContainer.innerHTML = '';
@@ -1307,18 +1316,22 @@
       const reader  = res.body.getReader();
       const decoder = new TextDecoder();
       let fullText  = '';
+      let buffer    = '';
 
       bubble.classList.remove('loading');
       bubble.textContent = '';
 
+      outer:
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const lines = decoder.decode(value, { stream: true }).split('\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // keep any incomplete trailing line for the next chunk
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           const data = line.slice(6).trim();
-          if (data === '[DONE]') break;
+          if (data === '[DONE]') break outer;
           try {
             const delta = JSON.parse(data).choices?.[0]?.delta?.content;
             if (delta) { fullText += delta; bubble.textContent = fullText; }
